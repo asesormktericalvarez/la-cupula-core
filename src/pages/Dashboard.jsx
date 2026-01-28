@@ -4,9 +4,10 @@ const Dashboard = () => {
   const [aspirants, setAspirants] = useState([]);
   // En producción, obtener esto del JWT decodificado
   const currentGuildId = "gremio-iuris"; 
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch(`http://localhost:3000/api/aspirants/${currentGuildId}`)
+    fetch(`${API_URL}/api/aspirants/${currentGuildId}`)
       .then(res => res.json())
       .then(data => setAspirants(data));
   }, []);
@@ -43,7 +44,7 @@ const Dashboard = () => {
               <div className="mb-4 bg-black h-48 flex items-center justify-center border border-gray-700 overflow-hidden relative group">
                 {user.photoUrl ? (
                   <img 
-                    src={`http://localhost:3000${user.photoUrl}`} 
+                    src={`${API_URL}${user.photoUrl}`} 
                     alt="C.I." 
                     className="object-cover w-full h-full opacity-70 group-hover:opacity-100 transition-opacity"
                   />

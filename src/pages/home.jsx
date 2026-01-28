@@ -4,8 +4,8 @@ const Home = () => {
   const [news, setNews] = useState([]);
 
   useEffect(() => {
-    // Fetch a la API local que creamos antes
-    fetch('http://localhost:3000/api/news')
+    const API_URL = import.meta.env.VITE_API_URL;
+    fetch(`${API_URL}/api/news`)
       .then(res => res.json())
       .then(data => setNews(data))
       .catch(err => console.error("Error cargando noticias:", err));

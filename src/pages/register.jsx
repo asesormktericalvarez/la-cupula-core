@@ -18,7 +18,8 @@ const Register = () => {
     if (file) data.append('ciPhoto', file); // Clave exacta que espera Multer
 
     try {
-      const res = await fetch('http://localhost:3000/api/register', {
+      const API_URL = import.meta.env.VITE_API_URL; // Definir variable
+const res = await fetch(`${API_URL}/api/register`, { // Usar variable {
         method: 'POST',
         body: data // Fetch maneja el Content-Type multipart/form-data automáticamente
       });

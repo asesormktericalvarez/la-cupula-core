@@ -6,9 +6,12 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('http://localhost:3000/api/login', {
+  e.preventDefault();
+  // Leemos la variable del archivo .env
+  const API_URL = import.meta.env.VITE_API_URL; 
+
+  try {
+    const res = await fetch(`${API_URL}/api/login`, { // <--- ASÍ DEBE QUEDAR {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
