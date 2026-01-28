@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
-import Home from './pages/home.jsx';
-import Register from './pages/register.jsx';
+import Home from './pages/Home.jsx';
+import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx'; // Asumimos que crearás un login simple similar a Register
 
