@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
   e.preventDefault();
+  setLoading(true);
   // Leemos la variable del archivo .env
   const API_URL = import.meta.env.VITE_API_URL; 
 
@@ -28,6 +30,8 @@ const Login = () => {
     } catch (error) {
       console.error(error);
       alert("Error de conexión con La Cúpula");
+      } finally {
+      setLoading(false)
     }
   };
 
@@ -51,9 +55,17 @@ const Login = () => {
               onChange={e => setFormData({...formData, password: e.target.value})} required />
           </div>
 
-          <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-3 uppercase tracking-wider hover:bg-yellow-600 transition-colors">
-            Entrar
-          </button>
+          <button 
+  type="submit" 
+  disabled={loading} // Desactiva el click si está cargando
+  className={`w-full font-bold py-3 uppercase tracking-wider transition-colors ${
+    loading 
+      ? 'bg-gray-700 text-gray-400 cursor-not-allowed' // Estilo "Apagado"
+      : 'bg-[#d4af37] text-black hover:bg-yellow-600'  // Estilo "Activo"
+  }`}
+>
+  {loading ? 'VERIFICANDO...' : 'ENTRAR'}
+</button>
         </form>
       </div>
     </div>
