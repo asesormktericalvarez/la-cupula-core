@@ -3,99 +3,158 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 
 // Configuración de rutas
-const DATA_DIR = path.join(__dirname, '../data'); // Ajusta si lo corres desde raíz
+const DATA_DIR = path.join(__dirname, '../data');
 const DB_PATH = path.join(DATA_DIR, 'database.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
 const init = async () => {
-    console.log("⚠️  INICIANDO PROTOCOLO DE GÉNESIS DE DATOS...");
+    console.log("⚠️  INICIANDO PROTOCOLO IMPERIUM v3.0 (Génesis de Datos)...");
 
     // 1. Crear directorios si no existen
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
     if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
-    // 2. Generar Hash para el Admin (Password: 'admin123')
-    // El sistema de login espera hashes, no texto plano.
+    // 2. Generar Hash para Usuarios Base
     const adminPassword = await bcrypt.hash('admin123', 10);
+    const userPassword = await bcrypt.hash('user123', 10);
 
-    // 3. Estructura de Datos (Seed Data)
+    // 3. Estructura de Datos (Schema Relacional Simulado)
     const seedData = {
         users: [
             {
-                id: "admin-master-001",
+                id: "usr-admin-001",
                 name: "El Canciller",
                 email: "admin@lacupula.una.py",
                 password: adminPassword,
-                role: "admin",
-                status: "active",
+                role: "admin", // Rol del sistema (admin/user)
+                
+                // --- NUEVA ARQUITECTURA DE PODER ---
+                guildId: "gremio-iuris", // Vinculación por ID
+                rankId: "rank-iuris-lider", // ID del rango dentro del gremio
+                
+                influence: 100,
+                contributions: 50,
+                ciPhoto: null,
+                joinedAt: new Date().toISOString()
+            },
+            {
+                id: "usr-free-001",
+                name: "Estudiante Libre",
+                email: "libre@derecho.una.py",
+                password: userPassword,
+                role: "user",
+                
+                // Usuario sin afiliación (Mercenario político)
                 guildId: null,
-                photoUrl: null,
+                rankId: null,
+                
+                influence: 10,
+                contributions: 0,
+                ciPhoto: null,
                 joinedAt: new Date().toISOString()
             }
         ],
+        
         guilds: [
             {
                 id: "gremio-iuris",
                 name: "MOVIMIENTO IURIS",
-                leaderId: "lid-001", 
                 description: "Excelencia académica y tradición jurídica. El movimiento de la verdadera élite intelectual.",
-                status: "Oficial",
-                color: "#1e3a8a" // Azul oscuro
+                mission: "Mantener la hegemonía académica mediante el control estricto de las cátedras.",
+                leaderId: "usr-admin-001", // Referencia al dueño
+                foundedAt: new Date().toISOString(),
+                colors: {
+                    primary: "#1e3a8a", // Azul oscuro
+                    secondary: "#d4af37" // Dorado
+                },
+                
+                // SISTEMA DE RANGOS (RBAC - Role Based Access Control)
+                ranks: [
+                    {
+                        id: "rank-iuris-lider",
+                        name: "Líder Supremo",
+                        level: 99, // Nivel jerárquico (mayor es más poder)
+                        permissions: ["ALL"] // Acceso total
+                    },
+                    {
+                        id: "rank-iuris-operador",
+                        name: "Operador Político",
+                        level: 50,
+                        permissions: ["VIEW_INTEL", "RECRUIT_MEMBERS", "POST_INTEL"]
+                    },
+                    {
+                        id: "rank-iuris-miembro",
+                        name: "Miembro Oficial",
+                        level: 10,
+                        permissions: ["VIEW_INTEL"]
+                    }
+                ],
+
+                // COLA DE SOLICITUDES (Burocracia)
+                applicants: [
+                    // Aquí irán los objetos { userId, ciPhoto, appliedAt, status: 'pending' }
+                ]
             },
             {
                 id: "gremio-fer",
                 name: "FRENTE RENOVADOR",
-                leaderId: "lid-002",
                 description: "La fuerza del cambio. Política de impacto y reforma estatutaria.",
-                status: "Oposicion",
-                color: "#b91c1c" // Rojo
-            },
-            {
-                id: "gremio-ali",
-                name: "ALIANZA INDEPENDIENTE",
-                leaderId: "lid-003",
-                description: "Sin ataduras políticas. Representación gremial pura para el estudiante.",
-                status: "En Formación",
-                color: "#047857" // Verde
+                mission: "Derrocar a la vieja escuela y renovar el estatuto.",
+                leaderId: "npc-fer-leader", 
+                foundedAt: new Date().toISOString(),
+                colors: {
+                    primary: "#b91c1c", // Rojo
+                    secondary: "#ffffff"
+                },
+                ranks: [
+                    {
+                        id: "rank-fer-lider",
+                        name: "Secretario General",
+                        level: 99,
+                        permissions: ["ALL"]
+                    },
+                    {
+                        id: "rank-fer-militante",
+                        name: "Militante",
+                        level: 10,
+                        permissions: ["VIEW_INTEL"]
+                    }
+                ],
+                applicants: []
             }
         ],
+
+        // SISTEMA DE INTELIGENCIA (NOTICIAS SEGMENTADAS)
         news: [
             {
                 id: 101,
-                title: "Tensión en el Consejo Directivo: Se debate el nuevo reglamento de cátedras",
-                content: "Fuentes internas confirman que la sesión de anoche se extendió hasta la madrugada. Los movimientos estudiantiles exigen transparencia en la asignación de docentes auxiliares para el semestre 2026.",
+                guildId: null, // NULL = GLOBAL (Visible para todos)
+                title: "Tensión en el Consejo Directivo",
+                content: "El Consejo ha llamado a cuarto intermedio. Se definen las fechas de exámenes finales.",
                 date: new Date().toISOString(),
-                isPublic: true,
-                author: "Redacción Política"
+                author: "Redacción Central"
             },
             {
                 id: 102,
-                title: "Elecciones 2026: IURIS presenta oficialmente a sus candidatos",
-                content: "En un evento cerrado en el Aula Magna, el movimiento oficialista definió su lista para el Centro de Estudiantes. Prometen mantener la hegemonía política un año más.",
-                date: new Date(Date.now() - 86400000).toISOString(), // Ayer
-                isPublic: true,
-                author: "Redacción Política"
-            },
-            {
-                id: 103,
-                title: "[RESTRINGIDO] Estrategia de Coalición para Octubre",
-                content: "CONTENIDO PRIVADO: Solo miembros de la Cúpula pueden leer esto. Se discuten alianzas estratégicas con la facultad de Economía.",
-                date: new Date(Date.now() - 172800000).toISOString(), // Anteayer
-                isPublic: false, // Privada
+                guildId: "gremio-iuris", // SOLO PARA MIEMBROS DE IURIS
+                title: "[CLASIFICADO] Orden de Voto - Martes",
+                content: "Todos los miembros deben votar EN CONTRA de la moción del FER. Sin excepciones.",
+                date: new Date().toISOString(),
                 author: "El Canciller"
             }
         ],
-        sessions: []
+        
+        system_logs: []
     };
 
-    // 4. Escribir archivo
+    // 4. Escribir archivo (Sobreescritura total)
     fs.writeFileSync(DB_PATH, JSON.stringify(seedData, null, 2));
 
-    console.log("✅ BASE DE DATOS CREADA EN: " + DB_PATH);
-    console.log("✅ USUARIO ADMIN CREADO:");
-    console.log("   User: admin@lacupula.una.py");
-    console.log("   Pass: admin123");
-    console.log("\nSistema listo para despliegue.");
+    console.log("✅ BASE DE DATOS REINICIADA (v3.0)");
+    console.log("   Ubicación: " + DB_PATH);
+    console.log("   Admin User: admin@lacupula.una.py (Pass: admin123)");
+    console.log("   Free User:  libre@derecho.una.py (Pass: user123)");
+    console.log("\nProtocolo Imperium activo. Esperando conexión del Backend.");
 };
 
 init();

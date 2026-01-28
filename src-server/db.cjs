@@ -1,21 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 
-// Ruta absoluta a la base de datos para evitar errores de ruta relativa
-const DB_PATH = path.join(__dirname, '../database.json');
+// Ruta absoluta a la base de datos
+const DB_PATH = path.join(__dirname, '../data/database.json');
 
-// Estructura inicial por si el archivo no existe
+// Estructura inicial ROBUSTA (v3.0)
 const INITIAL_DB = {
   users: [],
+  guilds: [], // Ahora almacena objetos complejos de gremios
   news: [],
-  logs: [] // Agregamos logs para auditoría
+  system_logs: []
 };
 
 // Inicializar DB si no existe
 function initDB() {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify(INITIAL_DB, null, 2));
-    console.log('⚡ [DB] Base de datos inicializada en:', DB_PATH);
+    console.log('⚡ [DB] Base de datos inicializada (v3.0) en:', DB_PATH);
   }
 }
 
@@ -33,7 +39,7 @@ function readDB() {
   }
 }
 
-// Escribir en DB de forma atómica (simulada)
+// Escribir en DB de forma atómica
 function writeDB(data) {
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));

@@ -1,225 +1,319 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
 import { 
-  LogOut, User, Shield, Activity, FilePlus, 
-  Settings, Award, Briefcase, ChevronRight 
+  LogOut, Shield, Users, Award, 
+  TrendingUp, AlertCircle, Briefcase, 
+  Crown, FileText, ChevronRight 
 } from 'lucide-react';
+import { toast } from 'sonner';
+
+// URL SEGURA
+const API_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:3000';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [news, setNews] = useState([]);
 
-  // Simulación de carga de datos del usuario
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      toast.error('ACCESO NO AUTORIZADO', {
-        description: 'Protocolo de seguridad activado.',
-      });
-      navigate('/login');
-      return;
-    }
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
 
-    // Aquí haríamos un fetch real al endpoint /api/me
-    // Por ahora, decodificamos o simulamos para mantener el diseño
-    setTimeout(() => {
-      // Simulación de datos (En producción, esto viene de tu API)
-      setUser({
-        name: 'Agente IURIS',
-        email: 'usuario@derecho.una.py',
-        role: 'Operador Político',
-        guild: 'Movimiento IURIS',
-        influence: 85,
-        contributions: 12,
-        joinDate: 'ENE 2026'
-      });
-      setLoading(false);
-    }, 800);
+        // 1. Obtener perfil enriquecido (incluye guild & rank)
+        const userRes = await fetch(`${API_URL}/api/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUser(userData);
+
+          // 2. Obtener noticias segmentadas
+          const newsRes = await fetch(`${API_URL}/api/news`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (newsRes.ok) {
+            setNews(await newsRes.json());
+          }
+        } else {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    toast('SESIÓN FINALIZADA', {
-      description: 'Desconectando del servidor central...',
-      icon: '🔌'
-    });
-    setTimeout(() => navigate('/login'), 1000);
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    toast.info("Sesión finalizada", { description: "Has desconectado del sistema." });
+    navigate('/login');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-cupula-black text-cupula-gold space-y-4">
-        <Activity className="w-12 h-12 animate-pulse" />
-        <p className="text-xs uppercase tracking-[0.3em] animate-pulse">Sincronizando...</p>
+      <div className="min-h-screen bg-cupula-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cupula-gold"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-cupula-black pt-24 pb-12 px-4 relative overflow-hidden">
-      {/* Background Grid FX */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
-      
-      <main className="max-w-6xl mx-auto relative z-10">
-        
-        {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 border-b border-gray-800 pb-6">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-white tracking-tight">
-              Centro de <span className="text-cupula-gold">Mando</span>
-            </h1>
-            <p className="text-xs text-gray-500 uppercase tracking-widest mt-2">
-              Bienvenido, {user.name}
-            </p>
+  // --- MODO 1: AGENTE LIBRE (Sin Gremio) ---
+  if (!user.guild) {
+    return (
+      <div className="min-h-screen bg-cupula-black pt-24 px-4 pb-12 relative overflow-hidden">
+        {/* Fondo sutil */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gray-900/50 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          <header className="flex justify-between items-center mb-12">
+            <div>
+              <h1 className="text-3xl font-serif text-white mb-1">
+                Bienvenido, <span className="text-gray-400">{user.name}</span>
+              </h1>
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-gray-800 text-gray-400 uppercase tracking-wider border border-gray-700">
+                  Agente Libre
+                </span>
+                <span className="text-xs text-gray-600 uppercase tracking-widest">
+                  Sin Afiliación Política
+                </span>
+              </div>
+            </div>
+            <button onClick={handleLogout} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+              <LogOut className="w-5 h-5" />
+            </button>
+          </header>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Call to Action: Unirse */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+              className="glass-card p-8 rounded-2xl border-l-4 border-l-cupula-gold relative group cursor-pointer hover:bg-white/5 transition-colors"
+              onClick={() => navigate('/guilds')}
+            >
+              <div className="absolute top-4 right-4 p-2 bg-cupula-gold/10 rounded-lg text-cupula-gold">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Mercado de Lealtades</h2>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                Explora las facciones activas, analiza sus misiones y ofrece tus servicios. 
+                El poder requiere estructura.
+              </p>
+              <div className="flex items-center text-cupula-gold text-xs font-bold uppercase tracking-widest group-hover:translate-x-2 transition-transform">
+                Ver Facciones <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </motion.div>
+
+            {/* Call to Action: Fundar (ACTIVO) */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+              className="glass-card p-8 rounded-2xl border-l-4 border-l-gray-700 relative group cursor-pointer hover:bg-white/5 transition-colors"
+              onClick={() => navigate('/guild/create')} // ACCIÓN HABILITADA
+            >
+              <div className="absolute top-4 right-4 p-2 bg-white/10 rounded-lg text-white">
+                <Crown className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Fundar Movimiento</h2>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                ¿Ninguna facción te representa? Reúne los recursos necesarios para iniciar tu propia dinastía política.
+              </p>
+              <div className="flex items-center text-white text-xs font-bold uppercase tracking-widest group-hover:translate-x-2 transition-transform">
+                Iniciar Fundación <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </motion.div>
           </div>
-          <div className="mt-4 md:mt-0 flex items-center space-x-4">
-            <span className="px-3 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 text-[0.6rem] font-bold uppercase tracking-widest animate-pulse">
-              Conexión Segura
-            </span>
+
+          {/* Noticias Globales Solamente */}
+          <div className="mt-12">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-800 pb-2">
+              Boletín Público
+            </h3>
+            <div className="grid gap-4">
+              {news.length > 0 ? news.map((item) => (
+                <div key={item.id} className="bg-black/40 border border-gray-800 p-6 rounded-lg hover:border-gray-600 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs text-blue-400 font-bold uppercase tracking-wider bg-blue-900/20 px-2 py-1 rounded">
+                      Global
+                    </span>
+                    <span className="text-[0.65rem] text-gray-600 uppercase">
+                      {new Date(item.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-200 mb-2">{item.title}</h4>
+                  <p className="text-sm text-gray-400">{item.content}</p>
+                </div>
+              )) : (
+                <p className="text-gray-600 italic text-sm">Sin novedades en el campus.</p>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // --- MODO 2: MIEMBRO DE FACCION (El juego real) ---
+  const isLeader = user.rank?.level >= 90; // Umbral de liderazgo
+
+  return (
+    <div className="min-h-screen bg-cupula-black pt-24 px-4 pb-12 relative overflow-hidden">
+      {/* Background del Gremio */}
+      <div 
+        className="absolute top-0 left-0 w-full h-[300px] opacity-10 pointer-events-none"
+        style={{ background: `linear-gradient(to bottom, ${user.guild.colors?.primary}, transparent)` }}
+      />
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* Header de Facción */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+          <div className="flex items-center space-x-6">
+            <div 
+              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl border border-white/10"
+              style={{ backgroundColor: user.guild.colors?.primary }}
+            >
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-serif font-bold text-white tracking-wide uppercase">
+                {user.guild.name}
+              </h1>
+              <div className="flex items-center space-x-3 mt-1">
+                <div className="flex items-center space-x-1 text-cupula-gold text-xs font-bold uppercase tracking-widest bg-cupula-gold/10 px-2 py-0.5 rounded border border-cupula-gold/20">
+                  <Award className="w-3 h-3" />
+                  <span>{user.rank?.name || 'Iniciado'}</span>
+                </div>
+                <span className="text-xs text-gray-500">|</span>
+                <span className="text-xs text-gray-400">{user.name}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+             {/* Botón de Mando (Solo Líderes) */}
+            {isLeader && (
+              <button 
+                onClick={() => navigate('/guild/manage')}
+                className="px-5 py-2 bg-red-900/30 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-red-900/50 transition-colors flex items-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                Alto Mando
+              </button>
+            )}
+            <button onClick={handleLogout} className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-        >
-          {/* COLUMNA IZQUIERDA: PERFIL */}
-          <motion.div variants={itemVariants} className="lg:col-span-1 space-y-6">
-            
-            {/* Tarjeta de Identidad */}
-            <div className="glass-card rounded-xl p-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-50">
-                <Shield className="w-24 h-24 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
-              </div>
-              
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-full bg-gray-800 border-2 border-cupula-gold p-1 mb-4 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
-                  <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                    <User className="w-10 h-10 text-gray-400" />
-                  </div>
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Columna Izquierda: Stats Personales */}
+          <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 rounded-xl">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Tu Rendimiento</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Influencia</span>
+                  <span className="text-lg font-bold text-white font-mono">{user.influence} pts</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-1.5">
+                  <div className="bg-cupula-gold h-1.5 rounded-full" style={{ width: `${Math.min(user.influence, 100)}%` }}></div>
                 </div>
                 
-                <h2 className="text-xl font-bold text-white">{user.name}</h2>
-                <p className="text-sm text-cupula-gold font-medium mt-1">{user.guild}</p>
-                
-                <div className="mt-6 w-full border-t border-gray-800 pt-4 grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-[0.6rem] text-gray-500 uppercase tracking-widest">Rango</p>
-                    <p className="text-sm font-bold text-gray-300">{user.role}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[0.6rem] text-gray-500 uppercase tracking-widest">Ingreso</p>
-                    <p className="text-sm font-bold text-gray-300">{user.joinDate}</p>
-                  </div>
+                <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Aportes</span>
+                  <span className="text-sm font-bold text-white">{user.contributions}</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Acciones de Cuenta */}
-            <div className="glass-panel rounded-xl p-1">
-              <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 rounded-lg group transition-colors">
-                <div className="flex items-center space-x-3">
-                  <Settings className="w-4 h-4 text-gray-400 group-hover:text-white" />
-                  <span className="text-sm text-gray-400 group-hover:text-white font-medium">Configuración</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-600" />
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center justify-between p-4 hover:bg-red-900/10 rounded-lg group transition-colors border-t border-white/5"
-              >
-                <div className="flex items-center space-x-3">
-                  <LogOut className="w-4 h-4 text-red-400/70 group-hover:text-red-400" />
-                  <span className="text-sm text-red-400/70 group-hover:text-red-400 font-medium">Abortar Sesión</span>
-                </div>
-              </button>
-            </div>
-          </motion.div>
-
-          {/* COLUMNA DERECHA: ESTADÍSTICAS Y OPERACIONES */}
-          <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
-            
-            {/* Panel de Estado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="glass-card p-6 rounded-xl border-l-4 border-l-cupula-gold">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nivel de Influencia</h3>
-                  <Award className="w-5 h-5 text-cupula-gold" />
-                </div>
-                <div className="flex items-end space-x-2">
-                  <span className="text-4xl font-black text-white">{user.influence}%</span>
-                  <span className="text-xs text-green-400 mb-1.5 font-bold">+2.4% esta semana</span>
-                </div>
-                <div className="w-full bg-gray-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-cupula-gold h-full w-[85%] shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 rounded-xl">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Estado de Facción</h3>
+              <div className="flex items-center space-x-3 mb-3 text-green-400">
+                <TrendingUp className="w-5 h-5" />
+                <span className="text-sm font-bold">Dominante</span>
               </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                El gremio mantiene control sobre el 60% de las delegaturas. Se requiere mantener la presión.
+              </p>
+            </motion.div>
+          </div>
 
-              <div className="glass-card p-6 rounded-xl border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Contribuciones</h3>
-                  <Briefcase className="w-5 h-5 text-blue-500" />
-                </div>
-                <div className="flex items-end space-x-2">
-                  <span className="text-4xl font-black text-white">{user.contributions}</span>
-                  <span className="text-xs text-gray-400 mb-1.5 font-bold">Informes activos</span>
-                </div>
-                <div className="w-full bg-gray-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-blue-500 h-full w-[40%] shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-                </div>
-              </div>
-            </div>
+          {/* Columna Central/Derecha: Feed de Inteligencia (Noticias Mixtas) */}
+          <div className="lg:col-span-2">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center">
+              <FileText className="w-4 h-4 mr-2" />
+              Inteligencia & Novedades
+            </h3>
 
-            {/* Zona de Operaciones */}
-            <div className="glass-panel p-6 rounded-xl">
-              <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center">
-                <Activity className="w-4 h-4 mr-2 text-cupula-red" />
-                Operaciones Disponibles
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/5 hover:border-cupula-gold/30 p-6 rounded-lg text-left transition-all">
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <FilePlus className="w-12 h-12 text-cupula-gold" />
+            <div className="space-y-4">
+              {news.map((item, idx) => (
+                <motion.div 
+                  key={item.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className={`p-6 rounded-xl border relative overflow-hidden group hover:bg-white/5 transition-all ${
+                    item.guildId 
+                      ? 'bg-red-900/5 border-red-900/30' // Noticia Privada
+                      : 'bg-black/40 border-gray-800'    // Noticia Global
+                  }`}
+                >
+                  {/* Etiqueta de Tipo */}
+                  <div className="absolute top-0 right-0 p-3">
+                    {item.guildId ? (
+                       <span className="flex items-center gap-1 text-[0.6rem] font-bold text-red-400 uppercase tracking-widest bg-red-950/50 px-2 py-1 rounded border border-red-900/50">
+                          <AlertCircle className="w-3 h-3" /> Clasificado
+                       </span>
+                    ) : (
+                       <span className="text-[0.6rem] font-bold text-gray-600 uppercase tracking-widest bg-gray-900 px-2 py-1 rounded">
+                          Público
+                       </span>
+                    )}
                   </div>
-                  <FilePlus className="w-6 h-6 text-cupula-gold mb-3" />
-                  <h4 className="font-bold text-gray-200 group-hover:text-white">Redactar Informe</h4>
-                  <p className="text-xs text-gray-500 mt-1">Crear una nueva entrada de noticias o reporte.</p>
-                </button>
-                
-                <button className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/5 hover:border-gray-500/30 p-6 rounded-lg text-left transition-all">
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Shield className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <Shield className="w-6 h-6 text-gray-400 mb-3" />
-                  <h4 className="font-bold text-gray-200 group-hover:text-white">Solicitar Credencial</h4>
-                  <p className="text-xs text-gray-500 mt-1">Gestionar permisos o cambiar de gremio.</p>
-                </button>
-              </div>
-            </div>
 
-          </motion.div>
-        </motion.div>
-      </main>
+                  <div className="mb-3">
+                    <span className="text-[0.65rem] text-gray-500 uppercase font-mono">
+                      {new Date(item.date).toLocaleDateString()} • {item.author || 'Sistema'}
+                    </span>
+                  </div>
+                  
+                  <h4 className={`text-lg font-bold mb-3 ${item.guildId ? 'text-red-100' : 'text-gray-200'}`}>
+                    {item.title}
+                  </h4>
+                  
+                  <p className={`text-sm leading-relaxed ${item.guildId ? 'text-red-200/70' : 'text-gray-400'}`}>
+                    {item.content}
+                  </p>
+                </motion.div>
+              ))}
+
+              {news.length === 0 && (
+                <div className="text-center py-12 border border-dashed border-gray-800 rounded-xl">
+                  <p className="text-gray-600">Los canales de inteligencia están en silencio.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 };

@@ -8,9 +8,10 @@ import Home from './pages/home.jsx';
 import Register from './pages/register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
+import GuildsBrowser from './pages/GuildsBrowser.jsx';
+import GuildControlPanel from './pages/GuildControlPanel.jsx'; // NUEVA IMPORTACIÓN
 
 // Extraemos el contenido a un sub-componente para poder usar el hook useLocation
-// (useLocation solo funciona si está DENTRO de BrowserRouter)
 const AppContent = () => {
   const location = useLocation();
 
@@ -27,6 +28,8 @@ const AppContent = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/guilds" element={<GuildsBrowser />} />
+            <Route path="/guild/manage" element={<GuildControlPanel />} /> {/* RUTA BLINDADA */}
           </Routes>
         </AnimatePresence>
       </main>
@@ -37,7 +40,7 @@ const AppContent = () => {
           <p className="text-gray-500 text-xs font-serif tracking-[0.2em] uppercase">
             La Cúpula © 2026 — Facultad de Derecho UNA
           </p>
-          <p className="text-gray-700 text-[0.6rem] mt-2 tracking-wide uppercase">
+          <p className="text-gray-700 text-gray-600 text-[0.6rem] mt-2 tracking-wide uppercase">
             Sistema de Inteligencia & Control Académico
           </p>
         </div>

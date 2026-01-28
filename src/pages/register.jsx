@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { User, Mail, Lock, Upload, FileText, Loader2, Shield, X } from 'lucide-react';
+import { User, Mail, Lock, Upload, FileText, Loader2, X } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', guildChoice: 'gremio-iuris'
+    name: '', email: '', password: ''
   });
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -30,10 +30,10 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validación de archivo en cliente antes de enviar
+    // Validación de archivo (Identidad base requerida)
     if (!file) {
       toast.error('DOCUMENTACIÓN REQUERIDA', {
-        description: 'Debes adjuntar una foto de tu C.I. para validación.',
+        description: 'Debes adjuntar una foto de tu C.I. para validar tu identidad en el sistema.',
       });
       return;
     }
@@ -43,11 +43,11 @@ const Register = () => {
     data.append('name', formData.name);
     data.append('email', formData.email);
     data.append('password', formData.password);
-    data.append('guildChoice', formData.guildChoice);
+    // El Agente nace libre, sin gremio inicial
     data.append('ciPhoto', file);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL;
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const res = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         body: data
@@ -55,13 +55,12 @@ const Register = () => {
       const result = await res.json();
       
       if (res.ok) {
-        toast.success('SOLICITUD ENCRIPTADA Y ENVIADA', {
-            description: 'La Cúpula analizará tu perfil. Espera instrucciones.',
-            duration: 4000,
-            icon: '🔒'
+        toast.success('IDENTIDAD REGISTRADA', {
+            description: 'Bienvenido, Agente Libre. Tu perfil ha sido creado.',
+            duration: 3000,
+            icon: 'fp'
         });
-        // Delay elegante antes de redirigir
-        setTimeout(() => navigate('/'), 2000);
+        setTimeout(() => navigate('/login'), 2000);
       } else {
         toast.error('ERROR EN EL PROTOCOLO', { description: result.msg });
       }
@@ -74,7 +73,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden py-24">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden py-24 bg-cupula-black">
       {/* Ambiente Background */}
       <div className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-cupula-gold/5 rounded-full blur-[120px]" />
 
@@ -85,14 +84,14 @@ const Register = () => {
         transition={{ duration: 0.4 }}
         className="w-full max-w-lg relative z-10"
       >
-        <div className="glass-card p-8 md:p-10 rounded-2xl shadow-2xl border border-white/5">
+        <div className="glass-card p-8 md:p-10 rounded-2xl shadow-2xl border border-white/5 bg-black/40 backdrop-blur-xl">
           
           <div className="text-center mb-8">
             <h2 className="text-2xl font-serif font-bold text-white tracking-widest uppercase">
-              Nuevo Expediente
+              Alta de Agente
             </h2>
             <p className="text-xs text-gray-500 mt-2 tracking-widest uppercase">
-              Formulario de Ingreso a la Facultad
+              Registro Único de Estudiantes
             </p>
           </div>
           
@@ -137,26 +136,12 @@ const Register = () => {
                 </div>
             </div>
 
-            {/* Guild Selector */}
-            <div className="space-y-1">
-                <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1">Declaración de Lealtad</label>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Shield className="h-4 w-4 text-gray-500 group-focus-within:text-cupula-gold transition-colors" />
-                    </div>
-                    <select className="w-full bg-black/50 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-1 focus:ring-cupula-gold focus:border-cupula-gold block w-full pl-10 p-2.5 outline-none appearance-none transition-all cursor-pointer"
-                        onChange={e => setFormData({...formData, guildChoice: e.target.value})}>
-                        <option value="gremio-iuris">Movimiento IURIS (Oficialismo)</option>
-                        <option value="gremio-fer">Frente Renovador (Oposición)</option>
-                        <option value="gremio-ali">Alianza Independiente</option>
-                    </select>
-                </div>
-            </div>
+            {/* SECCIÓN DE GREMIO ELIMINADA - EL AGENTE NACE LIBRE */}
 
-            {/* File Upload Visual - EL TOQUE PROFESIONAL */}
+            {/* File Upload Visual */}
             <div className="pt-2">
                 <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2 block">
-                    Prueba de Identidad (C.I.)
+                    Validación de Identidad (C.I.)
                 </label>
                 
                 <AnimatePresence mode="wait">
@@ -170,8 +155,8 @@ const Register = () => {
                             <div className="p-3 bg-gray-800 rounded-full mb-3 group-hover:bg-cupula-gold/20 transition-colors">
                                 <Upload className="h-6 w-6 text-gray-400 group-hover:text-cupula-gold" />
                             </div>
-                            <p className="text-xs text-gray-400 font-medium group-hover:text-gray-300">Click para subir evidencia</p>
-                            <p className="text-[0.6rem] text-gray-600 mt-1">Formatos Seguros: JPG, PNG</p>
+                            <p className="text-xs text-gray-400 font-medium group-hover:text-gray-300">Subir evidencia digital</p>
+                            <p className="text-[0.6rem] text-gray-600 mt-1">Requerido para activar perfil</p>
                         </motion.div>
                     ) : (
                         <motion.div 
@@ -183,7 +168,7 @@ const Register = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-white truncate">{file.name}</p>
-                                <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB • Listo para subir</p>
+                                <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB • Verificado</p>
                             </div>
                             <button type="button" onClick={removeFile} className="p-2 hover:bg-red-900/30 text-gray-400 hover:text-red-500 rounded-full transition-colors">
                                 <X className="h-5 w-5" />
@@ -202,12 +187,12 @@ const Register = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-xs uppercase tracking-widest">Transmitiendo...</span>
+                  <span className="text-xs uppercase tracking-widest">Procesando Alta...</span>
                 </>
               ) : (
                 <>
                   <FileText className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-widest">Presentar Solicitud</span>
+                  <span className="text-xs uppercase tracking-widest">Crear Perfil</span>
                 </>
               )}
             </button>
@@ -215,7 +200,7 @@ const Register = () => {
           
           <div className="mt-6 text-center">
             <Link to="/login" className="text-xs text-gray-500 hover:text-cupula-gold transition-colors">
-              ¿Ya tienes expediente? Acceder aquí
+              ¿Ya estás en el sistema? Acceder aquí
             </Link>
           </div>
 
