@@ -8,6 +8,21 @@ const { readDB, writeDB } = require('./db.cjs');
 
 const SECRET = 'SECRET_KEY_LA_CUPULA_ELITE'; // Cambiar en producción
 
+const sanitize = (text) => {
+  if (typeof text !== 'string') return '';
+  return text
+    .trim() // Quita espacios en blanco al inicio y final
+    .replace(/</g, "&lt;") // Convierte '<' en código seguro
+    .replace(/>/g, "&gt;") // Convierte '>' en código seguro
+    .replace(/"/g, "&quot;")
+    .slice(0, 500); // Límite de caracteres (Anti-spam masivo)
+};
+
+// 2. Validador de Email básico
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 // Configuración de Multer para subir C.I.
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -26,22 +41,35 @@ const upload = multer({ storage: storage });
 // Registro de Aspirante (Sube Foto C.I.)
 router.post('/register', upload.single('ciPhoto'), async (req, res) => {
   const db = readDB();
-  const { name, email, password, guildChoice } = req.body;
   
-  if (db.users.find(u => u.email === email)) {
+  // 1. LIMPIEZA DE DATOS (Sanitización)
+  const cleanName = sanitize(req.body.name);
+  const cleanEmail = sanitize(req.body.email).toLowerCase(); // Emails siempre en minúscula
+  const cleanGuild = sanitize(req.body.guildChoice);
+  const rawPassword = req.body.password; // La contraseña NO se sanitiza, se hashea
+
+  // 2. VALIDACIÓN (Reglas de negocio)
+  if (!cleanName || !cleanEmail || !rawPassword) {
+    return res.status(400).json({ msg: 'Todos los campos son obligatorios.' });
+  }
+  if (!isValidEmail(cleanEmail)) {
+    return res.status(400).json({ msg: 'Formato de correo inválido.' });
+  }
+  if (db.users.find(u => u.email === cleanEmail)) {
     return res.status(400).json({ msg: 'El usuario ya existe.' });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Si pasa los filtros, procedemos...
+  const hashedPassword = await bcrypt.hash(rawPassword, 10);
   
   const newUser = {
     id: Date.now().toString(),
-    name,
-    email,
+    name: cleanName,    // Guardamos la versión limpia
+    email: cleanEmail,  // Guardamos la versión limpia
     password: hashedPassword,
-    role: 'student', // 'admin', 'leader', 'student'
-    status: 'pending', // Requiere aprobación del líder
-    guildId: guildChoice || null,
+    role: 'student',
+    status: 'pending',
+    guildId: cleanGuild,
     photoUrl: req.file ? `/uploads/${req.file.filename}` : null,
     joinedAt: new Date().toISOString()
   };
@@ -53,17 +81,33 @@ router.post('/register', upload.single('ciPhoto'), async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/news', (req, res) => {
   const db = readDB();
-  const { email, password } = req.body;
-  const user = db.users.find(u => u.email === email);
+  
+  // Limpiamos título y contenido
+  const cleanTitle = sanitize(req.body.title); 
+  // Nota: Si en el futuro quieres permitir negritas/cursivas, necesitarás un sanitizador más complejo.
+  // Por ahora, bloqueamos todo HTML para máxima seguridad.
+  const cleanContent = sanitize(req.body.content); 
+  const isPublic = req.body.isPublic;
+  const author = sanitize(req.body.author || 'Anónimo');
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ msg: 'Credenciales inválidas.' });
+  if (!cleanTitle || !cleanContent) {
+    return res.status(400).json({ msg: 'Título y contenido requeridos.' });
   }
-
-  const token = jwt.sign({ id: user.id, role: user.role }, SECRET);
-  res.json({ token, user: { name: user.name, role: user.role, status: user.status } });
+  
+  const newPost = {
+    id: Date.now(),
+    title: cleanTitle,
+    content: cleanContent,
+    date: new Date(),
+    isPublic: isPublic === 'true' || isPublic === true,
+    author: author
+  };
+  
+  db.news.unshift(newPost);
+  writeDB(db);
+  res.json({ msg: 'Noticia publicada en La Cúpula.' });
 });
 
 // --- NOTICIAS ---
