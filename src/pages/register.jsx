@@ -7,7 +7,7 @@ const Register = () => {
     name: '', email: '', password: '', guildChoice: 'gremio-iuris'
   });
   const [file, setFile] = useState(null);
-
+const [loading, setLoading] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
@@ -25,15 +25,18 @@ const res = await fetch(`${API_URL}/api/register`, { // Usar variable {
       });
       const result = await res.json();
       if (res.ok) {
-        alert("Solicitud enviada. La Cúpula evaluará tu ingreso.");
-        navigate('/');
-      } else {
-        alert(result.msg);
-      }
-    } catch (error) {
-      console.error(error);
+      alert("Solicitud enviada. La Cúpula evaluará tu ingreso.");
+      navigate('/');
+    } else {
+      alert(result.msg);
     }
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Error de conexión");
+  } finally {
+    setLoading(false); // <--- 2. Desactiva carga siempre
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
@@ -75,9 +78,15 @@ const res = await fetch(`${API_URL}/api/register`, { // Usar variable {
               onChange={e => setFile(e.target.files[0])} required />
           </div>
 
-          <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-3 uppercase tracking-wider hover:bg-yellow-600 transition-colors mt-6">
-            Enviar Solicitud
-          </button>
+          <button 
+  type="submit" 
+  disabled={loading} // Bloquea si está cargando
+  className={`w-full font-bold py-3 uppercase tracking-wider transition-colors mt-6 ${
+    loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-[#d4af37] text-black hover:bg-yellow-600'
+  }`}
+>
+  {loading ? 'PROCESANDO...' : 'ENVIAR SOLICITUD'}
+</button>
         </form>
       </div>
     </div>
