@@ -1,169 +1,155 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { readDB, writeDB } = require('./db.cjs');
 
-const SECRET = 'SECRET_KEY_LA_CUPULA_ELITE'; // Cambiar en producción
+// === CONFIGURACIÓN DE SEGURIDAD === //
 
-const sanitize = (text) => {
-  if (typeof text !== 'string') return '';
-  return text
-    .trim() // Quita espacios en blanco al inicio y final
-    .replace(/</g, "&lt;") // Convierte '<' en código seguro
-    .replace(/>/g, "&gt;") // Convierte '>' en código seguro
-    .replace(/"/g, "&quot;")
-    .slice(0, 500); // Límite de caracteres (Anti-spam masivo)
+// Hash simple para contraseñas (SHA-256)
+const hashPassword = (password) => {
+  return crypto.createHash('sha256').update(password).digest('hex');
 };
 
-// 2. Validador de Email básico
-const isValidEmail = (email) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// Generador de Tokens de Sesión
+const generateToken = () => {
+  return crypto.randomBytes(32).toString('hex');
 };
 
-// Configuración de Multer para subir C.I.
+// Configuración de almacenamiento para C.I. (Multer)
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../data/uploads');
-    cb(null, dir);
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '../uploads');
+    // Asegurar que la carpeta existe (fs es necesario aquí si no existe, 
+    // pero asumiremos que el server.js la crea o ya existe)
+    cb(null, uploadPath);
   },
-  filename: (req, file, cb) => {
+  filename: function (req, file, cb) {
+    // Nombre de archivo único y seguro
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'CI-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'evidence-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
+
 const upload = multer({ storage: storage });
 
-// --- AUTH & REGISTRO ---
+// === RUTAS DE AUTORIDAD === //
 
-// Registro de Aspirante (Sube Foto C.I.)
-router.post('/register', upload.single('ciPhoto'), async (req, res) => {
-  const db = readDB();
-  
-  // 1. LIMPIEZA DE DATOS (Sanitización)
-  const cleanName = sanitize(req.body.name);
-  const cleanEmail = sanitize(req.body.email).toLowerCase(); // Emails siempre en minúscula
-  const cleanGuild = sanitize(req.body.guildChoice);
-  const rawPassword = req.body.password; // La contraseña NO se sanitiza, se hashea
+// 1. REGISTRO DE AGENTES
+router.post('/register', upload.single('ciPhoto'), (req, res) => {
+  try {
+    const { name, email, password, guildChoice } = req.body;
+    const db = readDB();
 
-  // 2. VALIDACIÓN (Reglas de negocio)
-  if (!cleanName || !cleanEmail || !rawPassword) {
-    return res.status(400).json({ msg: 'Todos los campos son obligatorios.' });
+    // Validar duplicados
+    if (db.users.find(u => u.email === email)) {
+      return res.status(400).json({ msg: 'Este correo ya está registrado en el sistema.' });
+    }
+
+    // Crear Perfil de Elite
+    const newUser = {
+      id: crypto.randomUUID(),
+      name,
+      email,
+      password: hashPassword(password), // Nunca guardar texto plano
+      guild: guildChoice === 'gremio-iuris' ? 'Movimiento IURIS' : 
+             guildChoice === 'gremio-fer' ? 'Frente Renovador' : 'Alianza Independiente',
+      role: 'Aspirante', // Rango inicial
+      influence: 5,      // Comienzas desde abajo
+      contributions: 0,
+      joinDate: new Date().toLocaleDateString('es-PY', { month: 'short', year: 'numeric' }).toUpperCase(),
+      ciPhoto: req.file ? `/uploads/${req.file.filename}` : null,
+      token: null
+    };
+
+    db.users.push(newUser);
+    writeDB(db);
+
+    // Registro de auditoría
+    console.log(`[ALTA] Nuevo aspirante registrado: ${email}`);
+
+    res.status(201).json({ msg: 'Expediente creado con éxito.', userId: newUser.id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Error interno en el protocolo de registro.' });
   }
-  if (!isValidEmail(cleanEmail)) {
-    return res.status(400).json({ msg: 'Formato de correo inválido.' });
-  }
-  if (db.users.find(u => u.email === cleanEmail)) {
-    return res.status(400).json({ msg: 'El usuario ya existe.' });
-  }
-
-  // Si pasa los filtros, procedemos...
-  const hashedPassword = await bcrypt.hash(rawPassword, 10);
-  
-  const newUser = {
-    id: Date.now().toString(),
-    name: cleanName,    // Guardamos la versión limpia
-    email: cleanEmail,  // Guardamos la versión limpia
-    password: hashedPassword,
-    role: 'student',
-    status: 'pending',
-    guildId: cleanGuild,
-    photoUrl: req.file ? `/uploads/${req.file.filename}` : null,
-    joinedAt: new Date().toISOString()
-  };
-
-  db.users.push(newUser);
-  writeDB(db);
-  
-  res.json({ msg: 'Solicitud enviada. Espere aprobación de La Cúpula.' });
 });
 
-// Login
-router.post('/news', (req, res) => {
+// 2. ACCESO AL SISTEMA (LOGIN)
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
   const db = readDB();
-  
-  // Limpiamos título y contenido
-  const cleanTitle = sanitize(req.body.title); 
-  // Nota: Si en el futuro quieres permitir negritas/cursivas, necesitarás un sanitizador más complejo.
-  // Por ahora, bloqueamos todo HTML para máxima seguridad.
-  const cleanContent = sanitize(req.body.content); 
-  const isPublic = req.body.isPublic;
-  const author = sanitize(req.body.author || 'Anónimo');
 
-  if (!cleanTitle || !cleanContent) {
-    return res.status(400).json({ msg: 'Título y contenido requeridos.' });
+  const user = db.users.find(u => u.email === email && u.password === hashPassword(password));
+
+  if (!user) {
+    return res.status(401).json({ msg: 'Credenciales inválidas o acceso revocado.' });
   }
-  
-  const newPost = {
-    id: Date.now(),
-    title: cleanTitle,
-    content: cleanContent,
-    date: new Date(),
-    isPublic: isPublic === 'true' || isPublic === true,
-    author: author
-  };
-  
-  db.news.unshift(newPost);
+
+  // Generar nueva sesión
+  const token = generateToken();
+  user.token = token; // Guardar sesión activa
   writeDB(db);
-  res.json({ msg: 'Noticia publicada en La Cúpula.' });
+
+  res.json({ 
+    token, 
+    user: { 
+      name: user.name, 
+      email: user.email, 
+      role: user.role 
+    } 
+  });
 });
 
-// --- NOTICIAS ---
+// 3. RECUPERAR DATOS DEL AGENTE (ME)
+router.get('/me', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Bearer TOKEN
+  if (!token) return res.status(401).json({ msg: 'Falta autorización.' });
 
-// Obtener noticias (Públicas vs Privadas)
+  const db = readDB();
+  const user = db.users.find(u => u.token === token);
+
+  if (!user) return res.status(403).json({ msg: 'Sesión expirada.' });
+
+  // Devolver solo datos públicos/seguros
+  res.json({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    guild: user.guild,
+    influence: user.influence,
+    contributions: user.contributions,
+    joinDate: user.joinDate,
+    ciPhoto: user.ciPhoto
+  });
+});
+
+// 4. FEED DE INTELIGENCIA (NOTICIAS)
 router.get('/news', (req, res) => {
   const db = readDB();
-  // En producción, decodificar token para ver si mostrar noticias privadas
-  const publicNews = db.news.filter(n => n.isPublic); 
-  res.json(publicNews);
-});
-
-// Postear Noticia (Solo Líderes/Admins)
-router.post('/news', (req, res) => {
-  // Aquí deberías verificar el token JWT (middleware simplificado)
-  const db = readDB();
-  const { title, content, isPublic, author } = req.body;
   
-  const newPost = {
-    id: Date.now(),
-    title,
-    content,
-    date: new Date(),
-    isPublic: isPublic === 'true',
-    author
-  };
-  
-  db.news.unshift(newPost); // Noticias nuevas primero
-  writeDB(db);
-  res.json({ msg: 'Noticia publicada en La Cúpula.' });
-});
-
-// --- GESTIÓN DE GREMIOS (PANEL DE CONTROL) ---
-
-// Ver aspirantes pendientes (Solo para líderes)
-router.get('/aspirants/:guildId', (req, res) => {
-  const db = readDB();
-  const { guildId } = req.params;
-  // Filtrar usuarios pendientes de ese gremio
-  const aspirants = db.users.filter(u => u.guildId === guildId && u.status === 'pending');
-  res.json(aspirants);
-});
-
-// Aprobar/Rechazar Aspirante
-router.post('/admit', (req, res) => {
-  const db = readDB();
-  const { userId, decision } = req.body; // decision: 'active' o 'rejected'
-  
-  const userIndex = db.users.findIndex(u => u.id === userId);
-  if (userIndex > -1) {
-    db.users[userIndex].status = decision;
-    writeDB(db);
-    res.json({ msg: `Usuario ${decision === 'active' ? 'ADMITIDO' : 'RECHAZADO'}.` });
-  } else {
-    res.status(404).json({ msg: 'Usuario no encontrado' });
+  // Si no hay noticias, devolver datos simulados para que el frontend no se vea vacío
+  if (!db.news || db.news.length === 0) {
+    return res.json([
+      {
+        id: 1,
+        title: "Reforma del Estatuto Estudiantil",
+        content: "El Consejo Directivo ha aprobado la revisión del artículo 45. Se esperan movilizaciones del sector opositor para la próxima semana. Mantener la vigilancia.",
+        date: new Date().toISOString(),
+        isPublic: true
+      },
+      {
+        id: 2,
+        title: "Filtración de Exámenes: Bloque C",
+        content: "Fuentes confidenciales indican que se han vulnerado los protocolos de seguridad en la cátedra de Derecho Romano. Se ha iniciado una investigación interna.",
+        date: new Date(Date.now() - 86400000).toISOString(),
+        isPublic: false
+      }
+    ]);
   }
+
+  res.json(db.news);
 });
 
 module.exports = router;

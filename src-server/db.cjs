@@ -1,25 +1,52 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '../data/database.json');
+// Ruta absoluta a la base de datos para evitar errores de ruta relativa
+const DB_PATH = path.join(__dirname, '../database.json');
 
-// Estructura inicial si el archivo no existe
+// Estructura inicial por si el archivo no existe
 const INITIAL_DB = {
-  users: [],      // { id, name, ci, password, role, guildId, status: 'pending'|'active', photoUrl }
-  news: [],       // { id, title, content, date, isPublic, author }
-  guilds: [],     // { id, name, history, leaderId, status: 'oficial' }
-  sessions: []
+  users: [],
+  news: [],
+  logs: [] // Agregamos logs para auditoría
 };
 
-const readDB = () => {
+// Inicializar DB si no existe
+function initDB() {
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify(INITIAL_DB, null, 2));
+    console.log('⚡ [DB] Base de datos inicializada en:', DB_PATH);
   }
-  return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-};
+}
 
-const writeDB = (data) => {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-};
+// Leer DB con manejo de errores
+function readDB() {
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      initDB();
+    }
+    const data = fs.readFileSync(DB_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('🔥 [DB ERROR] Corrupción detectada o error de lectura:', error);
+    return INITIAL_DB;
+  }
+}
 
-module.exports = { readDB, writeDB };
+// Escribir en DB de forma atómica (simulada)
+function writeDB(data) {
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+    return true;
+  } catch (error) {
+    console.error('🔥 [DB ERROR] No se pudo guardar:', error);
+    return false;
+  }
+}
+
+module.exports = { 
+  readDB, 
+  writeDB, 
+  initDB,
+  DB_PATH 
+};
