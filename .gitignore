@@ -1,0 +1,21 @@
+# Dependencias (Pesado - No subir)
+node_modules/
+.vite/
+
+# Producción y Logs
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Datos Sensibles (PRIVACIDAD TOTAL)
+# No subimos las fotos de C.I. ni la base de datos real
+data/uploads/*
+data/database.json
+
+# Sistemas Operativos
+.DS_Store
+Thumbs.db
+
+# Configuración de entorno local (si usaras .env)
+.env
