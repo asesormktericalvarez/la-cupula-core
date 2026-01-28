@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// URL SEGURA
-const API_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:3000';
+// URL SEGURA Y FIJA
+const API_URL = 'http://localhost:3000';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ const Dashboard = () => {
           return;
         }
 
-        // 1. Obtener perfil enriquecido (incluye guild & rank)
+        // 1. Obtener perfil enriquecido
         const userRes = await fetch(`${API_URL}/api/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -35,7 +35,7 @@ const Dashboard = () => {
           const userData = await userRes.json();
           setUser(userData);
 
-          // 2. Obtener noticias segmentadas
+          // 2. Obtener noticias solo si el usuario es válido
           const newsRes = await fetch(`${API_URL}/api/news`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -43,11 +43,14 @@ const Dashboard = () => {
             setNews(await newsRes.json());
           }
         } else {
+          // Si el token es inválido o expiró
+          console.log("Token inválido, cerrando sesión...");
           localStorage.removeItem('token');
           navigate('/login');
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error crítico en Dashboard:", error);
+        // Opcional: No redirigir inmediatamente en error de red para ver el log
       } finally {
         setLoading(false);
       }
@@ -70,11 +73,13 @@ const Dashboard = () => {
     );
   }
 
+  // Protección contra renderizado nulo si falló la carga pero no redirigió aún
+  if (!user) return null;
+
   // --- MODO 1: AGENTE LIBRE (Sin Gremio) ---
   if (!user.guild) {
     return (
       <div className="min-h-screen bg-cupula-black pt-24 px-4 pb-12 relative overflow-hidden">
-        {/* Fondo sutil */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gray-900/50 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto relative z-10">
@@ -98,7 +103,6 @@ const Dashboard = () => {
           </header>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Call to Action: Unirse */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               className="glass-card p-8 rounded-2xl border-l-4 border-l-cupula-gold relative group cursor-pointer hover:bg-white/5 transition-colors"
@@ -117,11 +121,10 @@ const Dashboard = () => {
               </div>
             </motion.div>
 
-            {/* Call to Action: Fundar (ACTIVO) */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
               className="glass-card p-8 rounded-2xl border-l-4 border-l-gray-700 relative group cursor-pointer hover:bg-white/5 transition-colors"
-              onClick={() => navigate('/guild/create')} // ACCIÓN HABILITADA
+              onClick={() => navigate('/guild/create')}
             >
               <div className="absolute top-4 right-4 p-2 bg-white/10 rounded-lg text-white">
                 <Crown className="w-6 h-6" />
@@ -136,7 +139,6 @@ const Dashboard = () => {
             </motion.div>
           </div>
 
-          {/* Noticias Globales Solamente */}
           <div className="mt-12">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-800 pb-2">
               Boletín Público
@@ -160,26 +162,22 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-
         </div>
       </div>
     );
   }
 
-  // --- MODO 2: MIEMBRO DE FACCION (El juego real) ---
-  const isLeader = user.rank?.level >= 90; // Umbral de liderazgo
+  // --- MODO 2: MIEMBRO DE FACCION ---
+  const isLeader = user.rank?.level >= 90;
 
   return (
     <div className="min-h-screen bg-cupula-black pt-24 px-4 pb-12 relative overflow-hidden">
-      {/* Background del Gremio */}
       <div 
         className="absolute top-0 left-0 w-full h-[300px] opacity-10 pointer-events-none"
         style={{ background: `linear-gradient(to bottom, ${user.guild.colors?.primary}, transparent)` }}
       />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        
-        {/* Header de Facción */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
           <div className="flex items-center space-x-6">
             <div 
@@ -204,7 +202,6 @@ const Dashboard = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-             {/* Botón de Mando (Solo Líderes) */}
             {isLeader && (
               <button 
                 onClick={() => navigate('/guild/manage')}
@@ -220,10 +217,7 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Columna Izquierda: Stats Personales */}
           <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 rounded-xl">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Tu Rendimiento</h3>
@@ -255,7 +249,6 @@ const Dashboard = () => {
             </motion.div>
           </div>
 
-          {/* Columna Central/Derecha: Feed de Inteligencia (Noticias Mixtas) */}
           <div className="lg:col-span-2">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center">
               <FileText className="w-4 h-4 mr-2" />
@@ -271,11 +264,10 @@ const Dashboard = () => {
                   transition={{ delay: idx * 0.1 }}
                   className={`p-6 rounded-xl border relative overflow-hidden group hover:bg-white/5 transition-all ${
                     item.guildId 
-                      ? 'bg-red-900/5 border-red-900/30' // Noticia Privada
-                      : 'bg-black/40 border-gray-800'    // Noticia Global
+                      ? 'bg-red-900/5 border-red-900/30'
+                      : 'bg-black/40 border-gray-800'
                   }`}
                 >
-                  {/* Etiqueta de Tipo */}
                   <div className="absolute top-0 right-0 p-3">
                     {item.guildId ? (
                        <span className="flex items-center gap-1 text-[0.6rem] font-bold text-red-400 uppercase tracking-widest bg-red-950/50 px-2 py-1 rounded border border-red-900/50">
@@ -311,7 +303,6 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>

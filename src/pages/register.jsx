@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Upload, FileText, Loader2, X } from 'lucide-react';
 
+// URL SEGURA Y FIJA
+const API_URL = 'http://localhost:3000';
+
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -13,7 +16,6 @@ const Register = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Manejador de archivo con vista previa inmediata
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
@@ -30,7 +32,6 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validación de archivo (Identidad base requerida)
     if (!file) {
       toast.error('DOCUMENTACIÓN REQUERIDA', {
         description: 'Debes adjuntar una foto de tu C.I. para validar tu identidad en el sistema.',
@@ -43,11 +44,9 @@ const Register = () => {
     data.append('name', formData.name);
     data.append('email', formData.email);
     data.append('password', formData.password);
-    // El Agente nace libre, sin gremio inicial
     data.append('ciPhoto', file);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const res = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         body: data
@@ -74,7 +73,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden py-24 bg-cupula-black">
-      {/* Ambiente Background */}
       <div className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-cupula-gold/5 rounded-full blur-[120px]" />
 
       <motion.div 
@@ -97,7 +95,6 @@ const Register = () => {
           
           <form onSubmit={handleSubmit} className="space-y-5">
             
-            {/* Nombre */}
             <div className="space-y-1">
                 <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1">Identidad (Nombre Completo)</label>
                 <div className="relative group">
@@ -110,7 +107,6 @@ const Register = () => {
                 </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-1">
                 <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1">Correo Institucional</label>
                 <div className="relative group">
@@ -123,7 +119,6 @@ const Register = () => {
                 </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-1">
                 <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1">Establecer Clave</label>
                 <div className="relative group">
@@ -136,9 +131,6 @@ const Register = () => {
                 </div>
             </div>
 
-            {/* SECCIÓN DE GREMIO ELIMINADA - EL AGENTE NACE LIBRE */}
-
-            {/* File Upload Visual */}
             <div className="pt-2">
                 <label className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2 block">
                     Validación de Identidad (C.I.)
@@ -178,7 +170,6 @@ const Register = () => {
                 </AnimatePresence>
             </div>
 
-            {/* Submit */}
             <button 
               type="submit" 
               disabled={loading}

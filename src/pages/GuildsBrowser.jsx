@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 import { Users, Shield, ChevronRight, Loader2, Upload, FileText, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+// URL SEGURA Y FIJA
+const API_URL = 'http://localhost:3000';
+
 const GuildsBrowser = () => {
   const navigate = useNavigate();
   const [guilds, setGuilds] = useState([]);
@@ -22,7 +25,6 @@ const GuildsBrowser = () => {
           return;
         }
 
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const res = await fetch(`${API_URL}/api/guilds`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -57,7 +59,6 @@ const GuildsBrowser = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
       const res = await fetch(`${API_URL}/api/guilds/${selectedGuild.id}/apply`, {
         method: 'POST',
