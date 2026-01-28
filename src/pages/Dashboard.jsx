@@ -1,81 +1,225 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { 
+  LogOut, User, Shield, Activity, FilePlus, 
+  Settings, Award, Briefcase, ChevronRight 
+} from 'lucide-react';
 
 const Dashboard = () => {
-  const [aspirants, setAspirants] = useState([]);
-  // En producción, obtener esto del JWT decodificado
-  const currentGuildId = "gremio-iuris"; 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Simulación de carga de datos del usuario
   useEffect(() => {
-    fetch(`${API_URL}/api/aspirants/${currentGuildId}`)
-      .then(res => res.json())
-      .then(data => setAspirants(data));
-  }, []);
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error('ACCESO NO AUTORIZADO', {
+        description: 'Protocolo de seguridad activado.',
+      });
+      navigate('/login');
+      return;
+    }
 
-  const handleDecision = async (userId, decision) => {
-    await fetch('http://localhost:3000/api/admit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, decision })
+    // Aquí haríamos un fetch real al endpoint /api/me
+    // Por ahora, decodificamos o simulamos para mantener el diseño
+    setTimeout(() => {
+      // Simulación de datos (En producción, esto viene de tu API)
+      setUser({
+        name: 'Agente IURIS',
+        email: 'usuario@derecho.una.py',
+        role: 'Operador Político',
+        guild: 'Movimiento IURIS',
+        influence: 85,
+        contributions: 12,
+        joinDate: 'ENE 2026'
+      });
+      setLoading(false);
+    }, 800);
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    toast('SESIÓN FINALIZADA', {
+      description: 'Desconectando del servidor central...',
+      icon: '🔌'
     });
-    // Actualizar lista visualmente
-    setAspirants(aspirants.filter(a => a.id !== userId));
+    setTimeout(() => navigate('/login'), 1000);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-cupula-black text-cupula-gold space-y-4">
+        <Activity className="w-12 h-12 animate-pulse" />
+        <p className="text-xs uppercase tracking-[0.3em] animate-pulse">Sincronizando...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#050505] p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl text-[#d4af37] font-bold mb-8 border-b border-gray-800 pb-4">
-          PANEL DE CONTROL: <span className="text-white">Aspirantes Pendientes</span>
-        </h1>
+    <div className="min-h-screen bg-cupula-black pt-24 pb-12 px-4 relative overflow-hidden">
+      {/* Background Grid FX */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+      
+      <main className="max-w-6xl mx-auto relative z-10">
+        
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 border-b border-gray-800 pb-6">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-white tracking-tight">
+              Centro de <span className="text-cupula-gold">Mando</span>
+            </h1>
+            <p className="text-xs text-gray-500 uppercase tracking-widest mt-2">
+              Bienvenido, {user.name}
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0 flex items-center space-x-4">
+            <span className="px-3 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 text-[0.6rem] font-bold uppercase tracking-widest animate-pulse">
+              Conexión Segura
+            </span>
+          </div>
+        </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {aspirants.map(user => (
-            <div key={user.id} className="bg-[#0f1218] border border-gray-800 p-4 flex flex-col">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-white font-bold text-lg">{user.name}</h3>
-                  <p className="text-gray-500 text-sm">{user.email}</p>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
+          {/* COLUMNA IZQUIERDA: PERFIL */}
+          <motion.div variants={itemVariants} className="lg:col-span-1 space-y-6">
+            
+            {/* Tarjeta de Identidad */}
+            <div className="glass-card rounded-xl p-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-50">
+                <Shield className="w-24 h-24 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+              </div>
+              
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-24 h-24 rounded-full bg-gray-800 border-2 border-cupula-gold p-1 mb-4 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+                  <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                    <User className="w-10 h-10 text-gray-400" />
+                  </div>
                 </div>
-                <span className="bg-yellow-900 text-yellow-200 text-xs px-2 py-1 rounded">Pendiente</span>
+                
+                <h2 className="text-xl font-bold text-white">{user.name}</h2>
+                <p className="text-sm text-cupula-gold font-medium mt-1">{user.guild}</p>
+                
+                <div className="mt-6 w-full border-t border-gray-800 pt-4 grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-[0.6rem] text-gray-500 uppercase tracking-widest">Rango</p>
+                    <p className="text-sm font-bold text-gray-300">{user.role}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[0.6rem] text-gray-500 uppercase tracking-widest">Ingreso</p>
+                    <p className="text-sm font-bold text-gray-300">{user.joinDate}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones de Cuenta */}
+            <div className="glass-panel rounded-xl p-1">
+              <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 rounded-lg group transition-colors">
+                <div className="flex items-center space-x-3">
+                  <Settings className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                  <span className="text-sm text-gray-400 group-hover:text-white font-medium">Configuración</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-600" />
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between p-4 hover:bg-red-900/10 rounded-lg group transition-colors border-t border-white/5"
+              >
+                <div className="flex items-center space-x-3">
+                  <LogOut className="w-4 h-4 text-red-400/70 group-hover:text-red-400" />
+                  <span className="text-sm text-red-400/70 group-hover:text-red-400 font-medium">Abortar Sesión</span>
+                </div>
+              </button>
+            </div>
+          </motion.div>
+
+          {/* COLUMNA DERECHA: ESTADÍSTICAS Y OPERACIONES */}
+          <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
+            
+            {/* Panel de Estado */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="glass-card p-6 rounded-xl border-l-4 border-l-cupula-gold">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nivel de Influencia</h3>
+                  <Award className="w-5 h-5 text-cupula-gold" />
+                </div>
+                <div className="flex items-end space-x-2">
+                  <span className="text-4xl font-black text-white">{user.influence}%</span>
+                  <span className="text-xs text-green-400 mb-1.5 font-bold">+2.4% esta semana</span>
+                </div>
+                <div className="w-full bg-gray-800 h-1.5 rounded-full mt-4 overflow-hidden">
+                  <div className="bg-cupula-gold h-full w-[85%] shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
+                </div>
               </div>
 
-              {/* Visualización de C.I. */}
-              <div className="mb-4 bg-black h-48 flex items-center justify-center border border-gray-700 overflow-hidden relative group">
-                {user.photoUrl ? (
-                  <img 
-                    src={`${API_URL}${user.photoUrl}`} 
-                    alt="C.I." 
-                    className="object-cover w-full h-full opacity-70 group-hover:opacity-100 transition-opacity"
-                  />
-                ) : (
-                  <span className="text-gray-600">Sin Foto</span>
-                )}
-                <div className="absolute bottom-0 left-0 bg-black/80 w-full p-1 text-center text-xs text-gray-400">
-                  DOCUMENTO DE IDENTIDAD
+              <div className="glass-card p-6 rounded-xl border-l-4 border-l-blue-500">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Contribuciones</h3>
+                  <Briefcase className="w-5 h-5 text-blue-500" />
+                </div>
+                <div className="flex items-end space-x-2">
+                  <span className="text-4xl font-black text-white">{user.contributions}</span>
+                  <span className="text-xs text-gray-400 mb-1.5 font-bold">Informes activos</span>
+                </div>
+                <div className="w-full bg-gray-800 h-1.5 rounded-full mt-4 overflow-hidden">
+                  <div className="bg-blue-500 h-full w-[40%] shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-auto">
-                <button 
-                  onClick={() => handleDecision(user.id, 'rejected')}
-                  className="bg-transparent border border-[#8a0303] text-[#8a0303] py-2 text-sm hover:bg-[#8a0303] hover:text-white transition-colors">
-                  RECHAZAR
+            {/* Zona de Operaciones */}
+            <div className="glass-panel p-6 rounded-xl">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center">
+                <Activity className="w-4 h-4 mr-2 text-cupula-red" />
+                Operaciones Disponibles
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/5 hover:border-cupula-gold/30 p-6 rounded-lg text-left transition-all">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <FilePlus className="w-12 h-12 text-cupula-gold" />
+                  </div>
+                  <FilePlus className="w-6 h-6 text-cupula-gold mb-3" />
+                  <h4 className="font-bold text-gray-200 group-hover:text-white">Redactar Informe</h4>
+                  <p className="text-xs text-gray-500 mt-1">Crear una nueva entrada de noticias o reporte.</p>
                 </button>
-                <button 
-                  onClick={() => handleDecision(user.id, 'active')}
-                  className="bg-[#d4af37] text-black font-bold py-2 text-sm hover:bg-yellow-600 transition-colors">
-                  APROBAR
+                
+                <button className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/5 hover:border-gray-500/30 p-6 rounded-lg text-left transition-all">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Shield className="w-12 h-12 text-gray-400" />
+                  </div>
+                  <Shield className="w-6 h-6 text-gray-400 mb-3" />
+                  <h4 className="font-bold text-gray-200 group-hover:text-white">Solicitar Credencial</h4>
+                  <p className="text-xs text-gray-500 mt-1">Gestionar permisos o cambiar de gremio.</p>
                 </button>
               </div>
             </div>
-          ))}
-          
-          {aspirants.length === 0 && (
-            <p className="text-gray-500 col-span-3 text-center py-12">No hay solicitudes pendientes de revisión.</p>
-          )}
-        </div>
-      </div>
+
+          </motion.div>
+        </motion.div>
+      </main>
     </div>
   );
 };
